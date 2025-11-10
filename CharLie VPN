@@ -1,0 +1,37 @@
+import socket
+from Crypto.Cipher import AES
+import os
+
+KEY = b'ThisIsASecretKey'  # 16 bytes for AES-128
+IV = os.urandom(16)
+
+def encrypt(data):
+    cipher = AES.new(KEY, AES.MODE_CFB, IV)
+    return IV + cipher.encrypt(data)
+
+def decrypt(data):
+    iv = data[:16]
+    cipher = AES.new(KEY, AES.MODE_CFB, iv)
+    return cipher.decrypt(data[16:])
+
+# Server
+def vpn_server():
+    s = socket.socket()
+    s.bind(('0.0.0.0', 9999))
+    s.listen(1)
+    conn, addr = s.accept()
+    print(f"Connected by {addr}")
+    while True:
+        data = conn.recv(4096)
+        if not data:
+            break
+        print("Received:", decrypt(data).decode())
+    conn.close()
+
+# Client
+def vpn_client():
+    s = socket.socket()
+    s.connect(('127.0.0.1', 9999))
+    message = "Hello through VPN!".encode()
+    s.send(encrypt(message))
+    s.close()
